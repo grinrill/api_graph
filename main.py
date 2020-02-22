@@ -1,6 +1,7 @@
 from bottle import Bottle, request
 import json
 from html_telegraph_poster import TelegraphPoster
+from html_telegraph_poster.html_to_telegraph import _upload_via_api as upload
 
 app = Bottle()
 
@@ -9,6 +10,7 @@ graph = TelegraphPoster()
 print('hhhhhhhh')
 
 @app.get('/create_api_token')
+@app.post('/create_api_token')
 def create_api_token():
 	kwargs = {i: None for i in ['short_name', 'author_name', 'author_url']}
 
@@ -20,11 +22,14 @@ def create_api_token():
 
 	if kwargs['author_name'] == None:
 		return '400 need author_name' #418 :)
+	if kwargs['short_name'] == None:
+		return '400 need short_name' #418 :)
 
 	return graph.create_api_token(**kwargs)
 
 
 @app.get('/post')
+@app.post('/post')
 def post():
 	kwargs = {i: None for i in ['title', 'author', 'text']}
 
@@ -34,9 +39,8 @@ def post():
 	if 'access_token' in args_raw:
 		access_token = args_raw['access_token'][0]
 	else:
-		return '''400 need access_token.
-		You can get it with /create_api_token?short_name=<short_name>[&author_name=<author_name>&author_url=<author_url>]'''
-	graph = TelegraphPoster(access_token)
+		print('returned')
+		return '400 need access_token.\nYou can get it with /create_api_token?short_name=<short_name>[&author_name=<author_name>&author_url=<author_url>]'
 
 	kwargs.update(args)
 	kwargs = {i: kwargs[i] for i in ['title', 'author', 'text']}
@@ -45,13 +49,11 @@ def post():
 		if kwargs[i] == None:
 			return f'field "{i}" cant be empty' #418 :)
 
-	print(graph)
-	post = graph.post(**kwargs)
-	post['state'] = vars(graph)
-	return post
-
+	graph = TelegraphPoster(access_token)
+	return graph.post(**kwargs)
 
 @app.get('/edit')
+@app.post('/edit')
 def edit():
 	kwargs = {i: None for i in ['title', 'author', 'text']}
 
@@ -61,40 +63,24 @@ def edit():
 	if 'access_token' in args_raw:
 		access_token = args_raw['access_token'][0]
 	else:
-		return '''400 need access_token.
-		You can get it with /create_api_token?short_name=<short_name>[&author_name=<author_name>&author_url=<author_url>]'''
-	graph = TelegraphPoster(access_token)
+		print('returned')
+		return '400 need access_token.\nYou can get it with /create_api_token?short_name=<short_name>[&author_name=<author_name>&author_url=<author_url>]'
 
-	if 'state' in args_raw:
-		params = args_raw['state'][0]
-		for k, v in json.loads(params).items():
-			graph.__setattr__(k, v)
-	else: 
-		return '''400 need state.
-		You can get it with /post?title=<title>&author=<author>&text=<text>&access_token=<access_token>'''
+	if 'path' in args_raw:
+		path = f"{args_raw['access_token'][0]}"
+	else:
+		print('returned')
+		return '400 need path.\nYou can get it with /create_api_token?short_name=<short_name>[&author_name=<author_name>&author_url=<author_url>]'
 
-	# if 'tph_uuid' in args_raw:
-	# 	graph.tph_uuid = args_raw['tph_uuid'][0]
-	# else:
-	# 	return '''400 need tph_uuid.
-	# 	You can get it with /post?title=<title>&author=<author>&text=<text>&access_token=<access_token>'''
-	
-	# if 'path' in args_raw:
-	# 	graph.path = args_raw['path'][0]
-	# else:
-	# 	return '''400 need path.
-	# 	You can get it with /post?title=<title>&author=<author>&text=<text>&access_token=<access_token>'''
 
-	# if 'page_id' in args_raw:
-	# 	graph.page_id = args_raw['page_id'][0]
-	# else:
-	# 	return '''400 need page_id.
-	# 	You can get it with /post?title=<title>&author=<author>&text=<text>&access_token=<access_token>'''
-	
 	kwargs.update(args)
 	kwargs = {i: kwargs[i] for i in ['title', 'author', 'text']}
 
-	print(graph.path)
-	return graph.edit(**kwargs)
+	for i in ['title', 'author', 'text']:
+		if kwargs[i] == None:
+			return f'field "{i}" cant be empty' #418 :)
+
+	res=upload(**kwargs, path=path, access_token=access_token)
+	return res
 
 app.run(host='0.0.0.0', port=8080)
