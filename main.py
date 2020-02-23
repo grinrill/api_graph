@@ -8,8 +8,7 @@ graph = TelegraphPoster()
 
 print('hhhhhhhh')
 
-@app.get('/create_api_token')
-@app.post('/create_api_token')
+@app.route('/create_api_token', method=['GET', 'POST'])
 def create_api_token():
 	kwargs = {i: None for i in ['short_name', 'author_name', 'author_url']}
 
@@ -24,9 +23,7 @@ def create_api_token():
 
 	return graph.create_api_token(**kwargs)
 
-
-@app.get('/post')
-@app.post('/post')
+@app.route('/post', method=['GET', 'POST'])
 def post():
 	kwargs = {i: None for i in ['title', 'author', 'text']}
 
